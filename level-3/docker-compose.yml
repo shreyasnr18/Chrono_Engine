@@ -1,0 +1,74 @@
+version: '3.8'
+
+services:
+  gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: aether_gateway
+    ports:
+      - "8000:8000"
+    environment:
+      - LOG_LEVEL=INFO
+      - N8N_WEBHOOK_URL=http://n8n:5678/webhook/aether-incident-stream
+      - DATABASE_URL=postgresql://aether_user:aether_pass@db:5432/aether_db
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - aether_network
+
+  db:
+    image: postgres:15-alpine
+    container_name: aether_db
+    environment:
+      POSTGRES_USER: aether_user
+      POSTGRES_PASSWORD: aether_pass
+      POSTGRES_DB: aether_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aether_user -d aether_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - aether_network
+
+  prometheus:
+    image: prom/prometheus:v2.45.0
+    container_name: aether_prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    networks:
+      - aether_network
+
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: aether_n8n
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - WEBHOOK_URL=http://localhost:5678/
+    volumes:
+      - n8n_data:/home/node/.n8n
+    networks:
+      - aether_network
+
+networks:
+  aether_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  n8n_data:
