@@ -23,17 +23,6 @@ The FastAPI Gateway Exporter exposes all live telemetry through the `/metrics` e
 
 ---
 
-## 2. Grafana Dashboard
-
-Grafana visualizes the live Prometheus metrics in real time, displaying voltage, temperature, and exporter health status through continuously updating dashboards.
-
-<p align="center">
-    <img src="./assets/Grafana.png"
-         alt="Grafana Dashboard"
-         width="1000">
-</p>
-
----
 
 ## 3. Prometheus Targets Page
 
