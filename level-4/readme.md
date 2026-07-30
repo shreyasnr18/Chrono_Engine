@@ -48,8 +48,8 @@ into a single fault-tolerant, containerized infrastructure capable of supporting
      │ Kafka                                   │ PromQL
      ▼                                         ▼
 ┌─────────┐                              ┌─────────┐
-│ Console │                              │ Grafana│
-│ :8080   │                              │ :3000  │
+│ Console │                              │ Grafana │
+│ :8080   │                              │ :3000   │
 └─────────┘                              └─────────┘
 ```
 
