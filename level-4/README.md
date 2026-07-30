@@ -19,9 +19,7 @@
 ## 2. Grafana Dashboard
 
 <p align="center">
-    <img src="assets/Grafana.png"
-         alt="Grafana Dashboard"
-         width="1000">
+    <img src="./assets/grafana.png" width="1000">
 </p>
 
 ---
