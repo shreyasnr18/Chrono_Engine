@@ -1,13 +1,13 @@
 import asyncio
 import logging
 import os
+import time
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Response
 from prometheus_client import Counter, Gauge, generate_latest, CONTENT_TYPE_LATEST
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
-from app.ingestion.stream_driver import SmartStreamDriver
 from app.kafka_producer import TelemetryStreamProducer
 
 # Setup Logging
@@ -15,7 +15,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("aether_gateway")
 
 # Environment Configuration
-DATA_SOURCE = os.getenv("DATA_SOURCE", "auto")
+DATA_SOURCE = os.getenv("DATA_SOURCE", "real_hardware")
 POSTGRES_HOST = os.getenv("POSTGRES_HOST", "aether_db")
 POSTGRES_USER = os.getenv("POSTGRES_USER", "aether")
 POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "aetherpass")
@@ -28,7 +28,7 @@ CURRENT_TEMP = Gauge("telemetry_temperature_celsius", "Live temperature reading"
 
 # Ingestion Components
 kafka_producer = TelemetryStreamProducer()
-stream_driver = SmartStreamDriver()
+sequence_counter = 0
 
 
 def get_db_connection():
@@ -66,60 +66,13 @@ def init_db():
         logger.error(f"PostgreSQL init failed: {e}")
 
 
-async def ingestion_loop():
-    logger.info(f"Starting ingestion pipeline in mode: {DATA_SOURCE}")
-
-    while True:
-        try:
-            # 1. Reads real hardware or auto-falls back to Digital Twin physics
-            frame = stream_driver.read_frame()
-
-            # 2. Update Prometheus metrics
-            FRAMES_PROCESSED.inc()
-            CURRENT_VOLTAGE.set(frame["voltage"])
-            CURRENT_TEMP.set(frame["temperature_c"])
-
-            # 3. Publish frame to Redpanda Kafka Topic 'telemetry.raw'
-            await kafka_producer.send_telemetry(topic="telemetry.raw", data=frame)
-
-            # 4. Save frame into PostgreSQL
-            try:
-                conn = get_db_connection()
-                cur = conn.cursor()
-                cur.execute("""
-                    INSERT INTO telemetry_logs (sequence_id, timestamp, voltage, temperature_c, source, is_simulated_anomaly)
-                    VALUES (%s, %s, %s, %s, %s, %s);
-                """, (
-                    frame["sequence_id"],
-                    frame["timestamp"],
-                    frame["voltage"],
-                    frame["temperature_c"],
-                    frame["source"],
-                    frame.get("is_simulated_anomaly", False)
-                ))
-                conn.commit()
-                cur.close()
-                conn.close()
-            except Exception as db_err:
-                logger.error(f"Failed to persist frame to Postgres: {db_err}")
-
-            logger.info(f"[{frame['source'].upper()}] Frame #{frame['sequence_id']}: Voltage={frame['voltage']}V | Temp={frame['temperature_c']}°C")
-
-        except Exception as e:
-            logger.error(f"Error in ingestion worker loop: {e}")
-
-        # Stream cadence: 1 event every 1 second
-        await asyncio.sleep(1.0)
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """FastAPI startup and shutdown lifecycle management."""
     init_db()
     await kafka_producer.start()
-    ingestion_task = asyncio.create_task(ingestion_loop())
+    # Synthetic background loop disabled so only physical hardware telemetry controls the pipeline
     yield
-    ingestion_task.cancel()
     await kafka_producer.stop()
 
 
@@ -134,3 +87,60 @@ def health_check():
 @app.get("/metrics")
 def metrics():
     return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
+
+
+@app.post("/telemetry")
+async def receive_telemetry(payload: dict):
+    """Processes live physical telemetry streaming from the Arduino Uno bridge."""
+    global sequence_counter
+    sequence_counter += 1
+
+    voltage = float(payload.get("voltage", 0.0))
+    temperature_c = float(payload.get("temperature_c", payload.get("temperature", 0.0)))
+    device_id = payload.get("device_id", "arduino_uno_01")
+    timestamp = time.time()
+
+    # 1. Update Prometheus metrics with real hardware readings
+    FRAMES_PROCESSED.inc()
+    CURRENT_VOLTAGE.set(voltage)
+    CURRENT_TEMP.set(temperature_c)
+
+    frame = {
+        "sequence_id": sequence_counter,
+        "timestamp": timestamp,
+        "voltage": voltage,
+        "temperature_c": temperature_c,
+        "source": device_id,
+        "is_simulated_anomaly": False
+    }
+
+    # 2. Publish live frame to Redpanda Kafka Topic 'telemetry.raw'
+    try:
+        await kafka_producer.send_telemetry(topic="telemetry.raw", data=frame)
+    except Exception as k_err:
+        logger.error(f"Failed to publish live frame to Redpanda: {k_err}")
+
+    # 3. Save frame into PostgreSQL
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("""
+            INSERT INTO telemetry_logs (sequence_id, timestamp, voltage, temperature_c, source, is_simulated_anomaly)
+            VALUES (%s, %s, %s, %s, %s, %s);
+        """, (
+            frame["sequence_id"],
+            frame["timestamp"],
+            frame["voltage"],
+            frame["temperature_c"],
+            frame["source"],
+            frame["is_simulated_anomaly"]
+        ))
+        conn.commit()
+        cur.close()
+        conn.close()
+    except Exception as db_err:
+        logger.error(f"Failed to persist live frame to Postgres: {db_err}")
+
+    logger.info(f"[REAL HW: {device_id.upper()}] Frame #{sequence_counter}: Voltage={voltage}V | Temp={temperature_c}°C")
+
+    return {"status": "success", "sequence_id": sequence_counter, "voltage": voltage, "temperature_c": temperature_c}
