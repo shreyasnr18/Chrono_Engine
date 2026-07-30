@@ -1,19 +1,19 @@
-# ChronoEngine Analytics (AetherEdge)
+# Level 3: FastAPI Gateway, Persistence & Observability - ChronoEngine Analytics (AetherEdge)
 
-An end-to-end, fault-tolerant telemetry processing system. It reads continuous hardware signals, detects dangerous voltage anomalies in real time, logs performance metrics, and automatically sends instant alert payloads to automated workflows.
+An end-to-end, fault-tolerant telemetry processing system. It ingests continuous hardware signals, detects dangerous voltage anomalies in real time, logs metrics to PostgreSQL, exposes Prometheus scraping targets, and dispatches instant webhook alerts to automated workflows.
 
 ---
 
 ## System Architecture Overview
 
-~~~text
+```text
 [ Arduino / Mock Hardware ] 
             │ (Serial / Mock Stream)
             ▼
 ┌────────────────────────────────────────────────────────┐
-│                   FastAPI Gateway                      │
+│                 FastAPI Gateway                        │
 │   • Resilient Ingestion Stream (COM Failover)          │
-│   • Real-Time Anomaly Engine                           │
+│   • Real-Time Anomaly Engine (Pydantic Validation)     │
 │   • Prometheus Metrics Endpoint (/metrics)             │
 └───────┬────────────────────────┬───────────────────────┘
         │                        │
@@ -23,94 +23,104 @@ An end-to-end, fault-tolerant telemetry processing system. It reads continuous h
 │  n8n Engine  │         │  Prometheus  │
 │  (Alerting)  │         │  (Dashboard) │
 └──────────────┘         └──────────────┘
-~~~
+        │
+        ▼
+┌──────────────┐
+│ PostgreSQL   │
+│ (aether_db)  │
+└──────────────┘
 
----
+# Purpose & Problem Solved
 
-## Level Breakdown
+Raw telemetry streams flowing through hardware serial connections or message brokers are ephemeral, unvalidated, and difficult to monitor. Running isolated scripts across separate terminal windows introduces configuration errors, dependency clashes, and high operational friction.
 
-### Level 1: Data Parsing & Core Signal Validation
+Level 3 solves this by packaging the entire ecosystem into an orchestrated microservice architecture. It introduces a centralized FastAPI backend for real-time validation, automatic COM port failover, structured PostgreSQL database persistence, Prometheus metrics scraping, and automated n8n incident alerting.
 
-**Problem Statement**
-Raw sensor signals coming from hardware can be messy, unformatted, or corrupted. If downstream analytics try to read broken data directly, the entire system crashes or generates incorrect calculations.
+# Algorithm: Asynchronous Ingestion & Persistence Algorithm (AIPA)
+Endpoint Routing & Ingestion: Intercept serial feeds or REST HTTP requests through non-blocking FastAPI asynchronous route handlers.
 
-**Our Solution & Justification**
-We built a structured parsing pipeline that validates every incoming frame into a clear data model (containing sequence ID, raw signal value, and variance). Validating data at the entry point ensures broken frames are filtered before reaching any business logic.
+# Schema & Anomaly Validation: Pass incoming frames through Pydantic data models to validate sequence IDs, signal variance, and detect threshold breaches (e.g., voltage spikes).
 
-**Alternative Solutions Considered**
-* **Processing raw text strings directly everywhere:**
-  * *Why it won't work:* Extremely fragile. A single missing comma, unexpected space, or serial drop will cause crashes throughout the application.
-* **Saving raw text to log files first and reading them later in batches:**
-  * *Why it won't work:* Batching adds significant delay. Critical voltage spikes require instant action, which offline log parsing cannot deliver.
+# Relational Persistence & Webhook Dispatch: Persist validated telemetry into PostgreSQL (aether_db). If an anomaly is flagged, immediately dispatch an HTTP POST webhook payload to the n8n alerting engine.
 
----
+# Health Check & Metrics Scraping: Expose service health (/healthz) and runtime telemetry metrics (/metrics) for continuous scraping by Prometheus every 5 seconds.
 
-### Level 2: Real-Time Stream Ingestion & Resilient Failover
+# Core Concepts Used
+1. Asynchronous Web Services: Utilizing FastAPI and Uvicorn for non-blocking, high-concurrency request handling.
 
-**Problem Statement**
-Physical USB cables get unplugged, ports change, and hardware fails. If a telemetry system relies 100% on a physical connection, a loose cable will crash the entire backend service and stop all monitoring.
+2. Microservice Containerization: Isolating services (API, DB, Prometheus, n8n) on a dedicated Docker bridge network.
 
-**Our Solution & Justification**
-We engineered an asynchronous worker with an automated **Mock Hardware Driver**. If the system fails to open or loses connection to the assigned port (e.g., `COM4`), the gateway catches the error and instantly switches to simulated data. The stream never dies, and system uptime stays at 100%.
+3. Event-Driven Webhook Dispatch: Replacing slow database polling with millisecond-level HTTP POST anomaly alerts.
 
-**Alternative Solutions Considered**
-* **Stopping the app immediately when the COM port disappears:**
-  * *Why it won't work:* Taking down the entire API gateway during brief hardware reconnects destroys backend availability and breaks live client dashboards.
-* **Using basic static checks (e.g., `if voltage > 100`):**
-  * *Why it won't work:* Static checks miss rapid variance shifts and standard deviation anomalies that occur within acceptable boundaries.
+4. Full-Stack Observability: Instrumenting custom application metrics to track gateway uptime, request duration, and hardware failover states.
 
----
+# Pipeline Breakdown & Architectural Trade-offs
+1. Data Parsing & Core Signal Validation
+Problem: Raw sensor signals can be corrupted or unformatted. If downstream analytics read broken data directly, the system crashes.
 
-### Level 3: Microservice Containerization, Observability & Webhook Alerts
+Our Solution: A structured Pydantic parsing pipeline validates every incoming frame before reaching any business logic.
 
-**Problem Statement**
-Running multiple individual Python scripts, database servers, and monitoring tools across separate terminal windows on a local computer leads to configuration errors, dependency clashes, and high operational friction.
+Alternatives Rejected:
 
-**Our Solution & Justification**
-We packaged the entire ecosystem into a single configuration file orchestrating four containerized services on an isolated bridge network:
+Processing raw text strings everywhere: Extremely fragile. A single dropped comma or missing byte crashes the application.
 
-1. **FastAPI Gateway:** Ingests signals and triggers events.
-2. **PostgreSQL:** Maintains persistent data storage with health checks.
-3. **Prometheus:** Automatically scrapes system metrics every 5 seconds.
-4. **n8n Engine:** Receives instant HTTP POST webhooks whenever an anomaly occurs.
+Batching raw text to log files: Adds significant delay. Critical voltage spikes require instant action that batch log processing cannot deliver.
 
-Using Docker Compose ensures the entire stack runs identically on any system with a single command.
+2. Stream Ingestion & Resilient Failover
+Problem: USB cables get unplugged and serial ports change. Relying 100% on a physical connection means a loose cable crashes the backend.
 
-**Alternative Solutions Considered**
-* **Running everything directly on the host operating system:**
-  * *Why it won't work:* System-level dependency conflicts (such as Python version differences, path issues, or missing libraries) cause startup failures across different environments.
-* **Polling the database from n8n every few seconds to look for errors:**
-  * *Why it won't work:* Polling wastes server resources with constant empty queries and adds delay. Direct HTTP POST webhooks push data the exact millisecond an anomaly is flagged.
+Our Solution: An asynchronous worker with an automated Mock Hardware Driver. If connection to the physical port (e.g., COM4) drops, the gateway catches the error and instantly switches to simulated data seamlessly.
 
----
+Alternatives Rejected:
 
-## How to Run the Stack
+Halting the application on COM disconnection: Destroying API gateway availability during brief reconnects breaks live client dashboards.
 
-### Prerequisites
+Basic static checks (if voltage > 100): Misses rapid variance shifts and standard deviation anomalies that occur within standard bounds.
+
+3. Containerized Orchestration & Observability
+Problem: Managing multiple local services manually leads to host library conflicts and environment drift.
+
+Our Solution: Containerizing four core services in Docker Compose:
+
+FastAPI Gateway: Signal ingestion, validation, and event routing.
+
+PostgreSQL: Persistent data storage with automated health checks.
+
+Prometheus: Real-time metrics collection and scraping.
+
+n8n Engine: Automated workflow engine for incident alerting.
+
+# Alternatives Rejected:
+
+1. Host-level manual execution: Dependency mismatches (Python versions, missing libs) break multi-platform deployments.
+
+2. Polling the database for alerts: Wastes database IOPS and adds latency compared to direct event webhooks.
+
+# Architecture Justification
+Combining FastAPI, PostgreSQL, Prometheus, and n8n inside Docker Compose guarantees production-grade reliability. FastAPI provides native async throughput and automatic OpenAPI docs (http://localhost:8000/docs). Containerizing the stack ensures zero stream loss, fault tolerance against hardware dropouts, and identical execution across any environment with a single command.
+
+# How to Run the Stack?
+* Prerequisites
 * Docker Desktop installed and running.
 
-### Launching the Stack
-Open PowerShell in the `level-3` directory and run:
-
-~~~powershell
+# Launching Services
+Navigate to the level-3 directory and start the stack in detached mode:
 docker compose up --build -d
-~~~
 
-### Checking Status
-Verify all services are up and healthy:
-
-~~~powershell
+# Verifying Service Health
+Check the container status and port mappings:
 docker compose ps
-~~~
 
-### Accessing Dashboards
-* **FastAPI Health Check:** `http://localhost:8000/healthz`
-* **Prometheus Metrics UI:** `http://localhost:9090`
-* **n8n Automation Platform:** `http://localhost:5678`
 
-### Viewing Live Logs
-Stream live gateway processing and webhook dispatches:
+# Service Endpoints
+FastAPI Gateway Health Check: http://localhost:8000/healthz
 
-~~~powershell
+FastAPI Swagger Docs: http://localhost:8000/docs
+
+Prometheus Metrics UI: http://localhost:9090
+
+n8n Automation Platform: http://localhost:5678
+
+# Live System Logs
+Monitor real-time gateway processing, failover triggers, and webhook dispatches:
 docker compose logs -f gateway
-~~~
