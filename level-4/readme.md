@@ -45,7 +45,7 @@ into a single fault-tolerant, containerized infrastructure capable of supporting
 │Redpanda │    │   n8n   │   │Postgres │ │Prometheus│
 │ :19092  │    │ :5678   │   │ :5432   │ │ :9090    │
 └────┬────┘    └─────────┘   └─────────┘ └────┬─────┘
-     │ Kafka                                   │ PromQL
+     │ Kafka                                  │ PromQL
      ▼                                         ▼
 ┌─────────┐                              ┌─────────┐
 │ Console │                              │ Grafana │
