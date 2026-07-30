@@ -16,14 +16,6 @@
 
 ---
 
-## 2. Grafana Dashboard
-
-<p align="center">
-    <img src="./assets/grafana.png" width="1000">
-</p>
-
----
-
 ## 3. Prometheus Targets Page
 
 <p align="center">
