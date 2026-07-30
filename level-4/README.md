@@ -1,12 +1,51 @@
 # Level 4: Unified Time-Series Aggregation & Metric Engine
 
-<p align="center">
-  <img src="assets/FastAPI Serial Stream.png" alt="ChronoEngine Telemetry Gateway" width="1000">
-</p>
-
 > **REAL-TIME DATA GUARANTEE:** This system is built strictly on **100% live physical telemetry**. No mock generators, fake random values, or simulated streams exist in Level 4. Every metric is pulled directly from active hardware registers, kernel API calls, or real-time vision execution loops.
 
 ---
+
+## System Validation Snapshots
+
+<table align="center">
+<tr>
+
+<td align="center" width="25%">
+
+<b>FastAPI Serial Stream</b><br><br>
+
+<img src="assets/FastAPI Serial Stream.png" alt="FastAPI Serial Stream" width="220">
+
+</td>
+
+<td align="center" width="25%">
+
+<b>Grafana</b><br><br>
+
+<img src="assets/Grafana.png" alt="Grafana Dashboard" width="220">
+
+</td>
+
+<td align="center" width="25%">
+
+<b>Prometheus Targets Page</b><br><br>
+
+<img src="assets/Prometheus Targets Page.png" alt="Prometheus Targets Page" width="220">
+
+</td>
+
+<td align="center" width="25%">
+
+<b>Redpanda Console &amp; n8n Alert</b><br><br>
+
+<img src="assets/Redpanda Console & n8n Alert.png" alt="Redpanda Console & n8n Alert" width="220">
+
+</td>
+
+</tr>
+</table>
+
+---
+
 
 ## 1. Problem Statement
 
