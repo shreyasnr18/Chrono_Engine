@@ -1,4 +1,4 @@
-# 🚀 ChronoEngine Analytics — Level 4
+#  ChronoEngine Analytics — Level 4
 ### Full-Stack Observability, Real-Time Dashboards & Automated Incident Response
 ### *AetherEdge Engineering Stack*
 
@@ -6,7 +6,7 @@
 
 ---
 
-## 📖 Overview
+##  Overview
 
 Level 4 represents the pinnacle of the **ChronoEngine** ecosystem.
 
@@ -23,7 +23,7 @@ into a single fault-tolerant, containerized infrastructure capable of supporting
 
 ---
 
-# 🏗️ System Architecture
+#  System Architecture
 
 ```text
                ┌──────────────────────┐
@@ -55,7 +55,7 @@ into a single fault-tolerant, containerized infrastructure capable of supporting
 
 ---
 
-# 🎯 Ideation & Purpose
+#  Ideation & Purpose
 
 Mission-critical engineering systems cannot rely solely on raw sensor logging.
 
@@ -72,7 +72,7 @@ Level 4 transforms ChronoEngine from a **reactive logging platform** into a **pr
 
 ---
 
-# ❗ Problem Statement
+#  Problem Statement
 
 ## Limitations of Level 3
 
@@ -112,7 +112,7 @@ No automated notification system existed.
 
 ---
 
-# ✅ Level 4 Solution
+#  Level 4 Solution
 
 Level 4 introduces a modern observability architecture by integrating:
 
@@ -127,7 +127,7 @@ This separates operational analytics from transactional storage while improving 
 
 ---
 
-# ⚖️ Architectural Design Decisions
+#  Architectural Design Decisions
 
 ## 1. Pull-Based Metrics
 
@@ -199,7 +199,7 @@ without maintaining custom charting software.
 
 ---
 
-# 🧠 Core Algorithms
+#  Core Algorithms
 
 ---
 
@@ -257,7 +257,7 @@ Ensures uninterrupted gateway operation even when hardware disconnects.
 
 ---
 
-# 📚 Engineering Concepts Demonstrated
+#  Engineering Concepts Demonstrated
 
 - Time-Series Databases (TSDB)
 - PromQL Query Language
@@ -275,7 +275,7 @@ Ensures uninterrupted gateway operation even when hardware disconnects.
 
 ---
 
-# 🛠️ Technology Stack
+#  Technology Stack
 
 | Component | Container | Port | Purpose |
 |------------|-----------|------|----------|
@@ -289,7 +289,7 @@ Ensures uninterrupted gateway operation even when hardware disconnects.
 
 ---
 
-# 🚀 Getting Started
+#  Getting Started
 
 ## Prerequisites
 
@@ -335,7 +335,7 @@ docker compose restart aether_prometheus
 
 ---
 
-# 🌐 Service Endpoints
+#  Service Endpoints
 
 | Service | URL |
 |----------|-----|
@@ -357,7 +357,7 @@ Password: admin
 
 ---
 
-# ✅ Verification
+#  Verification
 
 ## Step 1
 
@@ -408,7 +408,7 @@ A returned value of **1** confirms:
 
 ---
 
-# 📂 Project Highlights
+#  Project Highlights
 
 - High-frequency telemetry ingestion
 - Kafka-compatible event streaming
@@ -423,7 +423,7 @@ A returned value of **1** confirms:
 
 ---
 
-# 📈 Future Enhancements
+#  Future Enhancements
 
 - Kubernetes deployment
 - Horizontal gateway scaling
@@ -437,13 +437,13 @@ A returned value of **1** confirms:
 
 ---
 
-# 📄 License
+#  License
 
 This project is intended for educational, research, and engineering demonstration purposes.
 
 ---
 
-## 👨‍💻 ChronoEngine Analytics
+##  ChronoEngine Analytics
 
 **Level 4 — Full-Stack Observability, Streaming & Incident Response**
 
