@@ -4,48 +4,47 @@
 
 ---
 
-## System Validation Snapshots
+# System Validation Snapshots
 
-<table align="center">
-<tr>
+## 1. FastAPI Serial Stream
 
-<td align="center" width="25%">
-
-<b>FastAPI Serial Stream</b><br><br>
-
-<img src="assets/FastAPI Serial Stream.png" alt="FastAPI Serial Stream" width="220">
-
-</td>
-
-<td align="center" width="25%">
-
-<b>Grafana</b><br><br>
-
-<img src="assets/Grafana.png" alt="Grafana Dashboard" width="220">
-
-</td>
-
-<td align="center" width="25%">
-
-<b>Prometheus Targets Page</b><br><br>
-
-<img src="assets/Prometheus Targets Page.png" alt="Prometheus Targets Page" width="220">
-
-</td>
-
-<td align="center" width="25%">
-
-<b>Redpanda Console &amp; n8n Alert</b><br><br>
-
-<img src="assets/Redpanda Console & n8n Alert.png" alt="Redpanda Console & n8n Alert" width="220">
-
-</td>
-
-</tr>
-</table>
+<p align="center">
+    <img src="assets/FastAPI Serial Stream.png"
+         alt="FastAPI Serial Stream"
+         width="1000">
+</p>
 
 ---
 
+## 2. Grafana Dashboard
+
+<p align="center">
+    <img src="assets/Grafana.png"
+         alt="Grafana Dashboard"
+         width="1000">
+</p>
+
+---
+
+## 3. Prometheus Targets Page
+
+<p align="center">
+    <img src="assets/Prometheus Targets Page.png"
+         alt="Prometheus Targets Page"
+         width="1000">
+</p>
+
+---
+
+## 4. Redpanda Console & n8n Alert
+
+<p align="center">
+    <img src="assets/Redpanda Console &amp; n8n Alert.png"
+         alt="Redpanda Console &amp; n8n Alert"
+         width="1000">
+</p>
+
+---
 
 ## 1. Problem Statement
 
@@ -61,10 +60,6 @@ Before achieving stability, the pipeline faced critical architectural bottleneck
 ---
 
 ## 2. Solution Justification (Point-Wise Architecture Breakdown)
-
-<p align="center">
-  <img src="assets/FastAPI Serial Stream.png" alt="FastAPI Metrics Endpoint" width="1000">
-</p>
 
 The pipeline migrated away from relational SQL storage for time-series streaming and transitioned entirely to **Prometheus** as the Level 4 Metric Engine.
 
@@ -102,9 +97,6 @@ The pipeline migrated away from relational SQL storage for time-series streaming
 
 ## 3. Architecture & Data Flow
 
-<p align="center">
-  <img src="assets/Prometheus Targets Page.png" alt="Prometheus Target Registration" width="1000">
-</p>
 
 ```text
 +-----------------------------------------------------------------------------------+
