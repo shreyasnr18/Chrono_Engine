@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+pydantic
+psycopg2-binary
+prometheus-client
+aiokafka
+python-dotenv
+httpx
+pyserial

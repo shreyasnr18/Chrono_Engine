@@ -1,0 +1,120 @@
+services:
+  # ---------------------------------------------------------------------------
+  # 1. FastAPI Telemetry Gateway
+  # ---------------------------------------------------------------------------
+  aether_gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: aether_gateway
+    ports:
+      - "8000:8000"
+    environment:
+      - DATA_SOURCE=${DATA_SOURCE:-auto}
+      - REDPANDA_BROKER=aether_redpanda:9092
+      - POSTGRES_HOST=aether_db
+      - POSTGRES_USER=${POSTGRES_USER:-aether}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-aetherpass}
+      - POSTGRES_DB=${POSTGRES_DB:-telemetry_db}
+    depends_on:
+      aether_db:
+        condition: service_healthy
+      aether_redpanda:
+        condition: service_started
+    networks:
+      - aether_net
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # 2. Redpanda Event Bus (Kafka Protocol Engine)
+  # ---------------------------------------------------------------------------
+  aether_redpanda:
+    image: docker.redpanda.com/redpandadata/redpanda:v23.3.11
+    container_name: aether_redpanda
+    command:
+      - redpanda start
+      - --mode dev-container
+      - --smp 1
+      - --memory 512M
+      - --kafka-addr internal://0.0.0.0:9092,external://0.0.0.0:19092
+      - --advertise-kafka-addr internal://aether_redpanda:9092,external://localhost:19092
+    ports:
+      - "19092:19092"
+    networks:
+      - aether_net
+
+  # ---------------------------------------------------------------------------
+  # 3. Redpanda Web Console (Inspect Live Stream Messages)
+  # ---------------------------------------------------------------------------
+  aether_console:
+    image: docker.redpanda.com/redpandadata/console:v2.4.3
+    container_name: aether_console
+    ports:
+      - "8080:8080"
+    environment:
+      - KAFKA_BROKERS=aether_redpanda:9092
+    depends_on:
+      - aether_redpanda
+    networks:
+      - aether_net
+
+  # ---------------------------------------------------------------------------
+  # 4. PostgreSQL Database
+  # ---------------------------------------------------------------------------
+  aether_db:
+    image: postgres:15-alpine
+    container_name: aether_db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-aether}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-aetherpass}
+      POSTGRES_DB: ${POSTGRES_DB:-telemetry_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+    networks:
+      - aether_net
+
+  # ---------------------------------------------------------------------------
+  # 5. Prometheus Metrics Engine
+  # ---------------------------------------------------------------------------
+  aether_prometheus:
+    image: prom/prometheus:v2.45.0
+    container_name: aether_prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - aether_net
+
+  # ---------------------------------------------------------------------------
+  # 6. Grafana Telemetry Cockpit
+  # ---------------------------------------------------------------------------
+  aether_grafana:
+    image: grafana/grafana:10.0.3
+    container_name: aether_grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafanadata:/var/lib/grafana
+    depends_on:
+      - aether_prometheus
+    networks:
+      - aether_net
+
+networks:
+  aether_net:
+    driver: bridge
+
+volumes:
+  pgdata:
+  grafanadata:
